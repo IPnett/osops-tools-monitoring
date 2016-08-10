@@ -192,25 +192,25 @@ class Cinder(object):
         self.cinder.parser = self.cinder.get_base_parser()
         self.add_argument = self.cinder.parser.add_argument
 
-    def setup(self, api_version='1'):
+    def setup(self, api_version='2'):
+        from os import environ as env
+        from keystoneclient.auth.identity import v3
+        from keystoneclient import session
+        from keystoneclient.v3 import client as ksclient
+
+        auth = v3.Password(auth_url=env['OS_AUTH_URL'],
+            username=env['OS_USERNAME'],
+            password=env['OS_PASSWORD'],
+            user_domain_name=env['OS_USER_DOMAIN_NAME'],
+            project_name=env['OS_PROJECT_NAME'],
+            project_domain_name=env['OS_PROJECT_DOMAIN_NAME'])
+
+        sess = session.Session(auth=auth)
+        keystone = ksclient.Client(session=sess)
         from cinderclient import client
         (options, args) = self.cinder.parser.parse_known_args(self.base_argv)
-        if options.help:
-            options.command = None
-            self.cinder.do_help(options)
-            sys.exit(2)
-        if options.os_volume_api_version:
-            api_version = options.os_volume_api_version
-        client = client.get_client_class(api_version)(
-            options.os_username,
-            options.os_password,
-            options.os_tenant_name,
-            tenant_id=options.os_tenant_id,
-            auth_url=options.os_auth_url,
-            region_name=options.os_region_name,
-            cacert=options.os_cacert,
-            insecure=options.insecure)
-        return options, args, client
+        cinderclient = client.Client(api_version, session=keystone.session)
+        return options, args, cinderclient
 
 
 class Neutron(object):
