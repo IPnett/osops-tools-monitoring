@@ -121,36 +121,25 @@ class Nova(object):
         self.add_argument = self.nova.parser.add_argument
 
     def setup(self):
-        from novaclient.client import Client
-        (options, args) = self.nova.parser.parse_known_args(self.base_argv)
-        if options.help:
-            options.command = None
-            self.nova.do_help(options)
-            sys.exit(2)
-        auth_token = getattr(args, 'os_token', None)
-        api_version = '2.1'
-        nova_client = Client(
-            api_version,
-            options.os_username,
-            options.os_password,
-            getattr(
-                options, 'os_project_name', getattr(
-                    options, 'os_tenant_name', None
-                )
-            ),
-            tenant_id=getattr(
-                options, 'os_project_id', getattr(
-                    options, 'os_tenant_id', None
-                )
-            ),
-            auth_token=auth_token,
-            auth_url=options.os_auth_url,
-            region_name=options.os_region_name,
-            cacert=options.os_cacert,
-            insecure=options.insecure,
-            timeout=options.timeout)
-        return options, args, nova_client
+        from os import environ as env
+        from keystoneclient.auth.identity import v3
+        from keystoneclient import session
+        from keystoneclient.v3 import client
 
+        auth = v3.Password(auth_url=env['OS_AUTH_URL'],
+            username=env['OS_USERNAME'],
+            password=env['OS_PASSWORD'],
+            user_domain_name=env['OS_USER_DOMAIN_NAME'],
+            project_name=env['OS_PROJECT_NAME'],
+            project_domain_name=env['OS_PROJECT_DOMAIN_NAME'])
+
+        sess = session.Session(auth=auth)
+        keystone = client.Client(session=sess)
+
+        from novaclient import client
+        (options, args) = self.nova.parser.parse_known_args(self.base_argv)
+        nova_client = client.Client(2.1, session=keystone.session)
+        return options, args, nova_client
 
 class Glance(object):
     def __init__(self):
