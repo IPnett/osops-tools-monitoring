@@ -194,23 +194,10 @@ class Cinder(object):
         self.add_argument = self.cinder.parser.add_argument
 
     def setup(self, api_version='2'):
-        from os import environ as env
-        from keystoneclient.auth.identity import v3
-        from keystoneclient import session
-        from keystoneclient.v3 import client as ksclient
-
-        auth = v3.Password(auth_url=env['OS_AUTH_URL'],
-            username=env['OS_USERNAME'],
-            password=env['OS_PASSWORD'],
-            user_domain_name=env['OS_USER_DOMAIN_NAME'],
-            project_name=env['OS_PROJECT_NAME'],
-            project_domain_name=env['OS_PROJECT_DOMAIN_NAME'])
-
-        sess = session.Session(auth=auth)
-        keystone = ksclient.Client(session=sess)
+        session = get_keystone_session()
         from cinderclient import client
         (options, args) = self.cinder.parser.parse_known_args(self.base_argv)
-        cinderclient = client.Client(api_version, session=keystone.session)
+        cinderclient = client.Client(api_version, session=session)
         return options, args, cinderclient
 
 
