@@ -28,6 +28,10 @@ import traceback
 
 import psutil
 
+from keystoneclient import session as ksc_session
+from keystoneclient.auth.identity import v3
+from keystoneclient.v3 import client as keystone_v3
+
 AMQP_PORT = 5672
 
 
@@ -50,6 +54,16 @@ def ok(msg):
     print("OK: %s" % msg)
     sys.exit(0)
 
+def get_keystone_session():
+    c = {}
+    c['username'] = os.environ['OS_USERNAME']
+    c['password'] = os.environ['OS_PASSWORD']
+    c['auth_url'] = os.environ['OS_AUTH_URL']
+    c['project_name'] = os.environ['OS_PROJECT_NAME']
+    c['user_domain_name'] = os.environ['OS_USER_DOMAIN_NAME']
+    c['project_domain_name'] = os.environ['OS_PROJECT_DOMAIN_NAME']
+    auth = v3.Password(**c)
+    return ksc_session.Session(auth=auth)
 
 def check_process_name(name, p):
     if p.name == name:
@@ -121,24 +135,11 @@ class Nova(object):
         self.add_argument = self.nova.parser.add_argument
 
     def setup(self):
-        from os import environ as env
-        from keystoneclient.auth.identity import v3
-        from keystoneclient import session
-        from keystoneclient.v3 import client
-
-        auth = v3.Password(auth_url=env['OS_AUTH_URL'],
-            username=env['OS_USERNAME'],
-            password=env['OS_PASSWORD'],
-            user_domain_name=env['OS_USER_DOMAIN_NAME'],
-            project_name=env['OS_PROJECT_NAME'],
-            project_domain_name=env['OS_PROJECT_DOMAIN_NAME'])
-
-        sess = session.Session(auth=auth)
-        keystone = client.Client(session=sess)
+        session = get_keystone_session()
 
         from novaclient import client
         (options, args) = self.nova.parser.parse_known_args(self.base_argv)
-        nova_client = client.Client(2.1, session=keystone.session)
+        nova_client = client.Client(2.1, session=session)
         return options, args, nova_client
 
 class Glance(object):
