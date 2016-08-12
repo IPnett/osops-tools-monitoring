@@ -150,7 +150,7 @@ class Glance(object):
         self.glance.parser = self.glance.get_base_parser()
         self.add_argument = self.glance.parser.add_argument
 
-    def setup(self, api_version=1):
+    def setup(self, api_version=2):
         (options, args) = self.glance.parser.parse_known_args(self.base_argv)
         if options.help:
             options.command = None
