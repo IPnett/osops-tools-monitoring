@@ -38,25 +38,25 @@ def _check_cinder_api():
                         help='Critical timeout for cinder APIs calls')
     options, args, client = cinder.setup()
 
-    def quotas_list():
-        return client.quotas.get(options.os_tenant_name)
+    def volume_types():
+        return client.volume_types.list()
 
-    elapsed, quotas = utils.timeit(quotas_list)
-    if not quotas:
+    elapsed, types = utils.timeit(volume_types)
+    if not types:
         utils.critical("Unable to contact cinder API.")
 
     if elapsed > options.critical:
-        utils.critical("Get quotas took more than %d seconds, "
+        utils.critical("Get volume types took more than %d seconds, "
                        "it's too long.|response_time=%d" %
                        (options.critical, elapsed))
     elif elapsed > options.warning:
-        utils.warning("Get quotas took more than %d seconds, "
+        utils.warning("Get volume types took more than %d seconds, "
                       "it's too long.|response_time=%d" %
                       (options.warning, elapsed))
     else:
-        utils.ok("Get quotas, cinder API is working: "
-                 "list quota in %d seconds.|response_time=%d" %
-                 (elapsed, elapsed))
+        utils.ok("Get volume types, cinder API is working: "
+                 "got %d volume types in %d seconds.|response_time=%d" %
+                 (len(types), elapsed, elapsed))
 
 
 def check_cinder_api():
